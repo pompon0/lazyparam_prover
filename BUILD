@@ -13,6 +13,7 @@ cc_library(
     "log.h",
     "kbo.h",
   ],
+  deps = ["//util:util"],
 )
 
 cc_test(

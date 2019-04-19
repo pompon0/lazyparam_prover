@@ -1,7 +1,7 @@
 #define DEBUG if(1)
 #include "gtest/gtest.h"
 #include "mgu.h"
-#include "log.h"
+#include "util/log.h"
 
 TEST(MGU,loop) {
   Valuation V;

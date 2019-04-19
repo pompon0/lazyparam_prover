@@ -1,7 +1,10 @@
+#define DEBUG if(1)
+
 #include "types.h"
 #include "pred.h"
 #include "mgu.h"
 #include "kbo.h"
+#include "log.h"
 
 struct Proof {};
 
@@ -74,6 +77,5 @@ ptr<Proof> prove_loop(OrForm form, int limit) {
   return 0;
 }
 
-int main() {
-
-}
+StdLogger _;
+int main() {}

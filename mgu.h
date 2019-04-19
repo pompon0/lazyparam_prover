@@ -4,6 +4,7 @@
 #include "types.h"
 #include "pred.h"
 #include "alloc.h"
+#include "log.h"
 
 struct Valuation {
   // there is NO cycles in valuation, even x -> x
@@ -14,7 +15,7 @@ struct Valuation {
     return TVar::make(val.size()-1);
   }
 
-  inline bool assign(u64 v, Node t) {
+  inline bool assign(u64 v, Node t) { FRAME("MGU.assign()");
     // TODO: error, if already set
     switch(t.type()) {
     case TVAR: {
@@ -31,12 +32,12 @@ struct Valuation {
       val[v] = t;
       return 1;
     }
+    default: DEBUG error("unhandled t.type() = %",t.type());
     }
-    // TODO: throw
     return 0;
   }
 
-  inline bool mgu(Node/*Term*/ x, Node/*Term*/ y) {
+  inline bool mgu(Node/*Term*/ x, Node/*Term*/ y) { FRAME("mgu()");
     // TODO: add this iff hash consing is implemented
     // if(t1==t2) return 1;
     if(x.type()==TFUN && y.type()==TFUN) {
@@ -54,13 +55,22 @@ struct Valuation {
       if(auto mx = val[xv.var()]) return mgu(mx.get(),y);
       else return assign(xv.var(),y);
     }
-    // TODO: error
+    DEBUG error("unhandled case (type %, type %)",x.type(),y.type());
     return 0;
   }
 
-  inline Node eval(Node t) {
-    //TODO
-    return alloc(1);
+  inline Node eval(Node t) { FRAME("eval");
+    switch(t.type()) {
+    case TVAR: if(auto mv = val[t.cast<TVar>().var()]) return eval(mv.get()); else return t;
+    case TFUN: {
+      auto tf = t.cast<TFun>();
+      size_t ac = tf.arg_count();
+      TFun::Builder b(tf.fun(),ac);
+      for(size_t i=0; i<ac; ++i) b.set_arg(i,eval(tf.arg(i)));
+      return b.build();
+    }
+    default: DEBUG error("unhandled t.type() = %",t.type());
+    }
   }
 };
 

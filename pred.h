@@ -47,15 +47,17 @@ struct TFun : Node {
   u64 fun(){ return ptr[FUN]; }
   u64 arg_count(){ return ptr[ARG_COUNT]; }
   inline Node arg(size_t i){ return ptr+ARGS+i; }
-  u64* args(){ return ptr+ARGS; }
 
-  static TVar make(u64 _fun, u64 _arg_count) {
-    auto ptr = alloc(ARGS+_arg_count);
-    ptr[TYPE] = TFUN;
-    ptr[FUN] = _fun;
-    ptr[ARG_COUNT] = _arg_count;
-    return ptr;
-  }
+  struct Builder {
+    u64 *ptr;
+    Builder(u64 _fun, u64 _arg_count) : ptr(alloc(ARGS+_arg_count)) {
+      ptr[TYPE] = TFUN;
+      ptr[FUN] = _fun;
+      ptr[ARG_COUNT] = _arg_count;
+    }
+    void set_arg(size_t i, Node a){ ptr[ARGS+i] = u64(a.ptr); }
+    TFun build(){ return ptr; }
+  };
 };
 
 inline bool has_var(Node t, u64 v) {
@@ -99,6 +101,12 @@ struct Atom : Node {
     return ptr2;
   }
 };
+
+static_assert(sizeof(u64*)==sizeof(u64));
+static_assert(sizeof(Node)==sizeof(u64*));
+static_assert(sizeof(TVar)==sizeof(Node));
+static_assert(sizeof(TFun)==sizeof(Node));
+static_assert(sizeof(Atom)==sizeof(Node));
 
 //TODO: replace with hash consing
 inline bool operator!=(Node x, Node y);
