@@ -8,6 +8,8 @@ enum Type {
   TVAR,
   TFUN,
   ATOM,
+  BRANCH,
+  BUD,
 };
 
 struct Node {
@@ -23,9 +25,9 @@ struct Node {
 struct MaybeNode {
   u64 *ptr;
   MaybeNode(const Node &n) : ptr(n.ptr) {}
-  MaybeNode() : ptr(0) {}
-  operator bool(){ return ptr; }
-  Node get(){ return ptr; }
+  MaybeNode(u64 *_ptr = 0) : ptr(_ptr) {}
+  operator bool() const { return ptr; }
+  Node get() const { return ptr; }
 };
 
 struct TVar : Node {
@@ -46,7 +48,7 @@ struct TFun : Node {
   enum { FUN = Node::SIZE, ARG_COUNT, ARGS };
   u64 fun(){ return ptr[FUN]; }
   u64 arg_count(){ return ptr[ARG_COUNT]; }
-  inline Node arg(size_t i){ return ptr+ARGS+i; }
+  inline Node arg(size_t i){ return (u64*)ptr[ARGS+i]; }
 
   struct Builder {
     u64 *ptr;
@@ -82,7 +84,7 @@ struct Atom : Node {
   inline bool sign(){ return ptr[SIGN]; }
   inline u64 pred(){ return ptr[PRED]; }
   inline u64 arg_count(){ return ptr[ARG_COUNT]; }
-  inline Node arg(size_t i){ return ptr+ARGS+i; }
+  inline Node arg(size_t i){ return (u64*)ptr[ARGS+i]; }
 
   static inline Atom eq(bool sign, Node l, Node r) {
     //TODO: validate l,r are terms

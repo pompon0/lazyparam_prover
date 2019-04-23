@@ -12,6 +12,7 @@ cc_library(
     "pred.h",
     "log.h",
     "kbo.h",
+    "stack.h",
   ],
   deps = ["//util:util"],
 )

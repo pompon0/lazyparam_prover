@@ -5,11 +5,21 @@
 #include "mgu.h"
 #include "kbo.h"
 #include "log.h"
+#include "stack.h"
 
 struct Proof {};
 
 struct Ineq { Node l,r; };
 
+struct TabState {
+  Valuation mgu_state;
+  vec<Ineq> ineqs;
+  int nodes_used;
+  int next_var;
+  MaybeNode buds;
+};
+
+/*
 struct TabState {
   TabState() : nodes_used(0), next_var(0) {}
   int nodes_used;
@@ -38,7 +48,7 @@ struct TabState {
     return validate_lt(l,r) && validate_acyclic();
   }
 };
-
+*/
 struct SearchState {
   SearchState(OrForm _form, int _nodes_limit) : 
     form(to_NotAndForm(_form)),
@@ -47,58 +57,54 @@ struct SearchState {
   //reductionOrder;
   const NotAndForm form;
   int nodes_limit;
-  TabState tab;
+  vec<TabState> tabs;
 
-  ptr<Proof> expand(){
+  void expand(){
+    auto tab = tabs.back(); tabs.pop_back();
     tab.nodes_used++;
-    auto snapshot = tab;
     for(auto &cla : form.or_clauses) {
-      tab = snapshot;
       // TODO: alloc vars
-      auto snapshot = tab;
       for(size_t i=0; i<cla.atoms.size(); ++i) {
-        tab = snapshot;
-        // TODO: snapshot state
-        tab.branch.push_back(cla.atoms[i]);
-        auto strong_proof = strong();
-        tab.branch.pop_back();
-        if(!strong_proof) continue;
-
-        //TODO: emulate a stack or ipmplement continuations
+        auto buds = tab.buds.get().cast<Bud>();
+        auto branch = buds.branch();
         for(size_t j=0; j<cla.atoms.size(); ++j) if(i!=j) {
-          tab.branch.push_back(cla.atoms[j]);
-          auto weak_proof = weak();
-          tab.branch.pop_back();
-          if(!weak_proof) break; //TODO: continue the external loop
+          buds = Bud::make(0,Branch::make(cla.atoms[j],branch),buds);
         }
+        tab.buds = Bud::make(0,Branch::make(cla.atoms[i],branch),buds);
+        tabs.push_back(tab); 
       }
     }
-    // select clause
-    //allButOne (pushAndCont weak) (pushAndCont strong);
-    return 0;
   }
 
-  ptr<Proof> strong_pred(Atom a1, Atom a2) {
-    if(a1.sign()==a2.sign()) return 0;
-    if(a1.pred()!=a2.pred()) return 0;
+  void step(){
+    auto tab = tabs.back(); tabs.pop_back();
+    if(!tab.buds) return; // success
+    auto bud = tab.buds.get().cast<Bud>();
+    if(bud.strong()) {
+      strong_pred(tab);
+    } else {
+      
+    }
+  }
+
+  void strong_pred(const TabState &tab) {
+    auto branch = tab.buds.get().cast<Bud>().branch();
+    auto a1 = branch.atom();
+    auto a2 = branch.up().get().cast<Branch>().atom();
+    if(a1.sign()==a2.sign()) return;
+    if(a1.pred()!=a2.pred()) return;
+
     //tab.branch.push_back(Atom::eq(0,s.arg(i),v[i]));
     //weak();
     //tab.branch.pop_back();
-  }
-
-  ptr<Proof> strong() {
-    return 0;
-  }
-  ptr<Proof> weak() {
-    return 0;
   }
 };
 
 ptr<Proof> prove_loop(OrForm form, int limit) {
   for(int i=0; i<limit; ++i) {
     SearchState s(form,limit);
-    auto mproof = s.expand();
-    if(mproof) return mproof;
+    //auto mproof = s.expand();
+    //if(mproof) return mproof;
   }
   return 0;
 }
