@@ -78,20 +78,31 @@ inline bool has_var(Node t, u64 v) {
 struct Atom : Node {
   using Node::Node;
   enum { SIGN = Node::SIZE, PRED, ARG_COUNT, ARGS };
-  bool sign(){ return ptr[SIGN]; }
-  u64 pred(){ return ptr[PRED]; }
-  u64 arg_count(){ return ptr[ARG_COUNT]; }
-  u64* args(){ return ptr+ARGS; }
+  enum { EQ = u64(-1) };
+  inline bool sign(){ return ptr[SIGN]; }
+  inline u64 pred(){ return ptr[PRED]; }
+  inline u64 arg_count(){ return ptr[ARG_COUNT]; }
   inline Node arg(size_t i){ return ptr+ARGS+i; }
 
-  static Atom make(bool _sign, u64 _pred, u64 _arg_count) {
-    auto ptr = alloc(ARGS+_arg_count);
-    ptr[TYPE] = ATOM;
-    ptr[SIGN] = _sign;
-    ptr[PRED] = _pred;
-    ptr[ARG_COUNT] = _arg_count;
-    return ptr;
+  static inline Atom eq(bool sign, Node l, Node r) {
+    //TODO: validate l,r are terms
+    Builder b(sign,EQ,2);
+    b.set_arg(0,l);
+    b.set_arg(1,r);
+    return b.build();
   }
+
+  struct Builder {
+    u64 *ptr;
+    Builder(bool _sign, u64 _pred, u64 _arg_count) : ptr(alloc(ARGS+_arg_count)) {
+      ptr[TYPE] = ATOM;
+      ptr[SIGN] = _sign;
+      ptr[PRED] = _pred;
+      ptr[ARG_COUNT] = _arg_count;
+    }
+    inline void set_arg(size_t i, Node a){ ptr[ARGS+i] = u64(a.ptr); }
+    inline Atom build(){ return ptr; }
+  };
 
   Atom neg() {
     u64 *end = ptr+ARGS+arg_count();
