@@ -13,7 +13,9 @@ enum Type {
 };
 
 struct Node {
-  Node(u64 *_ptr) : ptr(_ptr) {}
+  Node(u64 *_ptr) : ptr(_ptr) {
+    DEBUG if(!ptr) error("Node(0)");
+  }
   u64 *ptr;
   enum { TYPE, SIZE };
   u64 type(){ return ptr[TYPE]; }
@@ -26,8 +28,11 @@ struct MaybeNode {
   u64 *ptr;
   MaybeNode(const Node &n) : ptr(n.ptr) {}
   MaybeNode(u64 *_ptr = 0) : ptr(_ptr) {}
-  operator bool() const { return ptr; }
-  Node get() const { return ptr; }
+  explicit operator bool() const { return ptr; }
+  Node get() const {
+    DEBUG if(!ptr) error("MaybeNode(0).get()");
+    return ptr;
+  }
 };
 
 struct TVar : Node {

@@ -12,6 +12,7 @@ struct Proof {};
 struct Ineq { Node l,r; };
 
 struct TabState {
+  Snapshot snapshot;
   Valuation mgu_state;
   vec<Ineq> ineqs;
   int nodes_used;
@@ -59,19 +60,24 @@ struct SearchState {
   int nodes_limit;
   vec<TabState> tabs;
 
-  void expand(){
-    auto tab = tabs.back(); tabs.pop_back();
-    tab.nodes_used++;
+  void expand(TabState _tab){
     for(auto &cla : form.or_clauses) {
+      TabState tab2 = _tab; // reset tab for variable allocation
+      tab2.nodes_used++;
+      auto buds = tab2.buds.get().cast<Bud>();
+      auto branch = buds.branch();
       // TODO: alloc vars
+      // each loop generates
       for(size_t i=0; i<cla.atoms.size(); ++i) {
-        auto buds = tab.buds.get().cast<Bud>();
-        auto branch = buds.branch();
+        tabs.push_back(tab2);
+        TabState &tab = tabs.back();
+        // TODO: unify atom
+        // Make the first bud strong
+        tab.buds = Bud::make(1,Branch::make(cla.atoms[i],branch),buds);
         for(size_t j=0; j<cla.atoms.size(); ++j) if(i!=j) {
-          buds = Bud::make(0,Branch::make(cla.atoms[j],branch),buds);
+          tab.buds = Bud::make(0,Branch::make(cla.atoms[j],branch),tab.buds);
         }
-        tab.buds = Bud::make(0,Branch::make(cla.atoms[i],branch),buds);
-        tabs.push_back(tab); 
+        tab.snapshot = stack;
       }
     }
   }
@@ -80,23 +86,33 @@ struct SearchState {
     auto tab = tabs.back(); tabs.pop_back();
     if(!tab.buds) return; // success
     auto bud = tab.buds.get().cast<Bud>();
+    stack = tab.snapshot;
     if(bud.strong()) {
       strong_pred(tab);
     } else {
-      
+      weak_pred(tab);
+      expand(tab);
     }
   }
 
-  void strong_pred(const TabState &tab) {
-    auto branch = tab.buds.get().cast<Bud>().branch();
+  void strong_pred(TabState tab) {
+    auto bud = tab.buds.get().cast<Bud>();
+    auto branch = bud.branch();
     auto a1 = branch.atom();
     auto a2 = branch.up().get().cast<Branch>().atom();
     if(a1.sign()==a2.sign()) return;
     if(a1.pred()!=a2.pred()) return;
+    auto ac = a1.arg_count();
+    for(size_t i=0; i<ac; ++i) {
+      if(!tab.mgu_state.mgu(a1.arg(i),a2.arg(i))) return;
+    }
+    tab.snapshot = stack;
+    tab.buds = bud.next();
+    tabs.push_back(tab);
+  }
+  
+  void weak_pred(TabState tab) {
 
-    //tab.branch.push_back(Atom::eq(0,s.arg(i),v[i]));
-    //weak();
-    //tab.branch.pop_back();
   }
 };
 

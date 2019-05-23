@@ -14,7 +14,7 @@ struct Branch : Node {
     auto ptr = alloc(SIZE);
     ptr[TYPE] = BRANCH;
     ptr[ATOM] = u64(_atom.ptr);
-    ptr[UP] = _up;
+    ptr[UP] = u64(_up.ptr);
     return ptr;
   }
 };
