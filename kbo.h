@@ -6,16 +6,16 @@
 #include "types.h"
 #include <algorithm>
 
-inline size_t max_var(Node t) {
+inline size_t max_var(Term t) {
   switch(t.type()) {
-  case TVAR: return t.cast<TVar>().var();
-  case TFUN: {
-    auto tf = t.cast<TFun>();
+  case Term::VAR: return Var(t).id();
+  case Term::FUN: {
+    Fun tf(t);
     size_t h = 0; for(auto i=tf.arg_count(); i--;) util::maxi(h,max_var(tf.arg(i)));
     return h;
   }
-  default: DEBUG error("unhandled t.type() = %",t.type());
   }
+  error("max_var(<type = %>)",t.type());
 }
 
 struct Balance {
@@ -28,22 +28,22 @@ struct Balance {
   enum Res { L, G, E, N };
   static inline Res cmp(u64 l, u64 r) { return l<r ? L : l>r ? G : E; }
   
-  inline void accum(Node t, int f) { FRAME("Balance.accum()");
+  inline void accum(Term t, int f) { FRAME("Balance.accum()");
     switch(t.type()) {
-    case TVAR: {
+      case Term::VAR: {
       weight += f;
-      auto &x = var_occ[t.cast<TVar>().var()], x2 = x+f;
+      auto &x = var_occ[Var(t).id()], x2 = x+f;
       pos += (x2>0)-(x>0);
       neg += (x2<0)-(x<0);
       x = x2;
     }
-    case TFUN: {
-      auto tf = t.cast<TFun>();
+    case Term::FUN: {
+      Fun tf(t);
       weight += f;
       for(auto i=tf.arg_count(); i--;) accum(tf.arg(i),f);
     }
-    default: DEBUG error("unhandled t.type() = %",t.type());
     }
+    error("accum(<type=%>,f)",t.type());
   }
 
   inline Res cmp_accum(Res lex) { FRAME("cmp_accum");
@@ -53,11 +53,10 @@ struct Balance {
     return weight<0 ? L : weight>0 ? G : lex;
   }
   
-  inline Res cmp(Node l, Node r) { FRAME("Balance.cmp()");
+  inline Res cmp(Term l, Term r) { FRAME("Balance.cmp()");
     //TODO: replace with hash cons
-    if(l.type()==TFUN && r.type()==TFUN && l!=r) {
-      auto lf = l.cast<TFun>();
-      auto rf = r.cast<TFun>();
+    if(l.type()==Term::FUN && r.type()==Term::FUN && l!=r) {
+      Fun lf(l), rf(r);
       if(lf.fun()!=rf.fun()) {
         for(auto i=lf.arg_count(); i--;) accum(lf.arg(i),1);
         for(auto i=rf.arg_count(); i--;) accum(rf.arg(i),-1);
@@ -79,7 +78,7 @@ struct Balance {
   }
 };
 
-inline bool kbo(Node l, Node r) { FRAME("kbo()");
+inline bool kbo(Term l, Term r) { FRAME("kbo()");
   return Balance(std::max(max_var(l),max_var(r))+1).cmp(l,r)==Balance::L;
 }
 

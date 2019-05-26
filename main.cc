@@ -9,15 +9,14 @@
 
 struct Proof {};
 
-struct Ineq { Node l,r; };
+struct Ineq { Term l,r; };
 
 struct TabState {
   Snapshot snapshot;
   Valuation mgu_state;
   vec<Ineq> ineqs;
   int nodes_used;
-  int next_var;
-  MaybeNode buds;
+  List<Bud> buds;
 };
 
 /*
@@ -60,46 +59,52 @@ struct SearchState {
   int nodes_limit;
   vec<TabState> tabs;
 
+  void start() {
+    
+  }
+
   void expand(TabState _tab){
-    for(auto &cla : form.or_clauses) {
+    for(auto cla : form.or_clauses) {
       TabState tab2 = _tab; // reset tab for variable allocation
-      tab2.nodes_used++;
-      auto buds = tab2.buds.get().cast<Bud>();
-      auto branch = buds.branch();
-      // TODO: alloc vars
-      // each loop generates
+      if(++tab2.nodes_used>nodes_limit) return;
+      auto bud = tab2.buds.head();
+      auto branch = bud.branch;
+      // TODO: alloc variables 
+      // each iteration generates an alternative
       for(size_t i=0; i<cla.atoms.size(); ++i) {
         tabs.push_back(tab2);
         TabState &tab = tabs.back();
+        tab.buds = tab.buds.tail();
         // TODO: unify atom
         // Make the first bud strong
-        tab.buds = Bud::make(1,Branch::make(cla.atoms[i],branch),buds);
+        tab.buds += Bud{1,cla.atoms[i]+branch};
         for(size_t j=0; j<cla.atoms.size(); ++j) if(i!=j) {
-          tab.buds = Bud::make(0,Branch::make(cla.atoms[j],branch),tab.buds);
+          tab.buds += Bud{0,cla.atoms[j]+branch};
         }
         tab.snapshot = stack;
       }
     }
   }
 
-  void step(){
+  bool step(){
     auto tab = tabs.back(); tabs.pop_back();
-    if(!tab.buds) return; // success
-    auto bud = tab.buds.get().cast<Bud>();
+    if(tab.buds.empty()) return 1; // success
+    auto bud = tab.buds.head();
     stack = tab.snapshot;
-    if(bud.strong()) {
+    if(bud.strong) {
       strong_pred(tab);
     } else {
-      weak_pred(tab);
       expand(tab);
+      weak_pred(tab);
     }
+    return 0;
   }
 
   void strong_pred(TabState tab) {
-    auto bud = tab.buds.get().cast<Bud>();
-    auto branch = bud.branch();
-    auto a1 = branch.atom();
-    auto a2 = branch.up().get().cast<Branch>().atom();
+    auto bud = tab.buds.head();
+    auto branch = bud.branch;
+    auto a1 = branch.head();
+    auto a2 = branch.tail().head();
     if(a1.sign()==a2.sign()) return;
     if(a1.pred()!=a2.pred()) return;
     auto ac = a1.arg_count();
@@ -107,20 +112,39 @@ struct SearchState {
       if(!tab.mgu_state.mgu(a1.arg(i),a2.arg(i))) return;
     }
     tab.snapshot = stack;
-    tab.buds = bud.next();
+    tab.buds = tab.buds.tail();
     tabs.push_back(tab);
   }
   
-  void weak_pred(TabState tab) {
-
+  void weak_pred(TabState _tab) {
+    auto bud = _tab.buds.head();
+    auto branch = bud.branch;
+    auto a1 = branch.head();
+    for(auto b2 = branch.tail(); !b2.empty(); b2 = b2.tail()) {
+      auto tab = _tab;
+      auto a2 = b2.head();
+      if(a1.sign()==a2.sign()) return;
+      if(a1.pred()!=a2.pred()) return;
+      auto ac = a1.arg_count();
+      bool ok = 1;
+      for(size_t i=0; i<ac; ++i) {
+        if(!tab.mgu_state.mgu(a1.arg(i),a2.arg(i))){ ok = 0; break; }
+      }
+      if(!ok) continue;
+      tab.snapshot = stack;
+      tab.buds = tab.buds.tail();
+      tabs.push_back(tab);
+    }
   }
 };
 
 ptr<Proof> prove_loop(OrForm form, int limit) {
   for(int i=0; i<limit; ++i) {
     SearchState s(form,limit);
-    //auto mproof = s.expand();
-    //if(mproof) return mproof;
+    s.start();
+    while(s.tabs.size()) {
+      if(s.step()) return ptr<Proof>(new Proof{});
+    }
   }
   return 0;
 }

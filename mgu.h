@@ -8,66 +8,65 @@
 
 struct Valuation {
   // there is NO cycles in valuation, even x -> x
-  vec<MaybeNode> val; // vec<Term>
+  vec<Maybe<Term>> val;
 
-  inline Node alloc_var() {
+  inline Var alloc_var() {
     val.emplace_back();
-    return TVar::make(val.size()-1);
+    return Var::make(val.size()-1);
   }
 
-  inline bool assign(u64 v, Node t) { FRAME("MGU.assign()");
+  inline bool assign(u64 v, Term t) { FRAME("MGU.assign()");
     // TODO: error, if already set
     switch(t.type()) {
-    case TVAR: {
-      auto tv = t.cast<TVar>();
+      case Term::VAR: {
+      Var tv(t);
       // break on trivial assignment
-      if(tv.var()==v) return 1;
+      if(tv.id()==v) return 1;
       // traverse TVar assignments
-      if(auto mtv = val[tv.var()]) return assign(v,mtv.get());
+      if(auto mtv = val[tv.id()]) return assign(v,mtv.get());
       val[v] = t;
       return 1;
     }
-    case TFUN: {
+    case Term::FUN: {
       if(has_var(t,v)) return 0;
       val[v] = t;
       return 1;
     }
-    default: DEBUG error("unhandled t.type() = %",t.type());
     }
+    error("MGU::assignt(v,<type=%>)",t.type());
     return 0;
   }
 
-  inline bool mgu(Node/*Term*/ x, Node/*Term*/ y) { FRAME("mgu()");
+  inline bool mgu(Term x, Term y) { FRAME("mgu()");
     // TODO: add this iff hash consing is implemented
     // if(t1==t2) return 1;
-    if(x.type()==TFUN && y.type()==TFUN) {
-      auto xf = x.cast<TFun>();
-      auto yf = y.cast<TFun>();
+    if(x.type()==Term::FUN && y.type()==Term::FUN) {
+      Fun xf(x), yf(y);
       if(xf.fun()!=yf.fun()) return 0;
       auto ac = xf.arg_count();
       for(size_t i=0; i<ac; ++i)
         if(!mgu(xf.arg(i),yf.arg(i))) return 0;
       return 1;
     }
-    if(x.type()!=TVAR && y.type()==TVAR) swap(x,y);
-    if(x.type()==TVAR) {
-      auto xv = x.cast<TVar>();
-      if(auto mx = val[xv.var()]) return mgu(mx.get(),y);
-      else return assign(xv.var(),y);
+    if(x.type()!=Term::VAR && y.type()==Term::VAR) swap(x,y);
+    if(x.type()==Term::VAR) {
+      Var xv(x);
+      if(auto mx = val[xv.id()]) return mgu(mx.get(),y);
+      else return assign(xv.id(),y);
     }
-    DEBUG error("unhandled case (type %, type %)",x.type(),y.type());
+    error("unhandled case (type %, type %)",x.type(),y.type());
     return 0;
   }
 
-  inline Node eval(Node t) { FRAME("eval");
+  inline Term eval(Term t) { FRAME("eval");
     switch(t.type()) {
-    case TVAR: if(auto mv = val[t.cast<TVar>().var()]) return eval(mv.get()); else return t;
-    case TFUN: {
-      auto tf = t.cast<TFun>();
+    case Term::VAR: if(auto mv = val[Var(t).id()]) return eval(mv.get()); else return t;
+    case Term::FUN: {
+      Fun tf(t);
       size_t ac = tf.arg_count();
-      TFun::Builder b(tf.fun(),ac);
+      Fun::Builder b(tf.fun(),ac);
       for(size_t i=0; i<ac; ++i) b.set_arg(i,eval(tf.arg(i)));
-      return b.build();
+      return Term(b.build());
     }
     default: DEBUG error("unhandled t.type() = %",t.type());
     }

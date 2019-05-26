@@ -4,35 +4,34 @@
 #include "alloc.h"
 #include "pred.h"
 
-struct Branch : Node {
-  using Node::Node;
-  enum { ATOM = Node::SIZE, UP, SIZE };
-  Atom atom(){ return (u64*)ptr[ATOM]; }
-  MaybeNode up(){ return (u64*)ptr[SIZE]; }
-
-  static Branch make(Atom _atom, MaybeNode _up) {
-    auto ptr = alloc(SIZE);
-    ptr[TYPE] = BRANCH;
-    ptr[ATOM] = u64(_atom.ptr);
-    ptr[UP] = u64(_up.ptr);
-    return ptr;
+template<typename E> struct List {
+private:
+  struct Node { Node *tail; E head; };
+  Node *ptr;
+  List(Node *_ptr) : ptr(_ptr) {}
+public:
+  bool empty(){ return !ptr; }
+  E head(){
+    DEBUG if(empty()) error("<0>.head()");
+    return ptr->head;
   }
+  List<E> tail(){
+    DEBUG if(empty()) error("<0>.tail()");
+    return List(ptr->tail);
+  }
+  static List<E> make() { return List(0); }
+  static List<E> make(E h, List<E> t) {
+    return List(alloc_init(Node{t.ptr,h}));
+  }
+  friend List<E> operator+(E h, List<E> t){ return make(h,t); }
+  List<E>& operator+=(E h){ return *this = make(h,*this); }
 };
 
-struct Bud : Node {
-  using Node::Node;
-  enum { STRONG = Node::SIZE, BRANCH, NEXT, SIZE };
-  bool strong(){ return ptr[STRONG]; }
-  Branch branch(){ return (u64*)ptr[BRANCH]; }
-  MaybeNode next(){ return (u64*)ptr[NEXT]; }
+using Branch = List<Atom>;
 
-  static Bud make(bool _strong, Branch _branch, MaybeNode _next) {
-    auto ptr = alloc(SIZE);
-    ptr[TYPE] = BUD;
-    ptr[BRANCH] = (u64)_branch.ptr;
-    ptr[NEXT] = (u64)_next.ptr;
-    return ptr;
-  }
+struct Bud {
+  bool strong;
+  Branch branch;
 };
 
 // any clause with literal
