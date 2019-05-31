@@ -5,6 +5,7 @@ cc_library(
       "types.h",
       "log.h",
       "short.h",
+      "read_file.h",
     ],
   visibility = ["//visibility:public"],
 )

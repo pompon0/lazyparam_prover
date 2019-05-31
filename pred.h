@@ -127,7 +127,7 @@ public:
   Atom neg() {
     u64 *end = ptr+ARGS+arg_count();
     u64 *ptr2 = alloc(end-ptr);
-    for(auto x = ptr, y = ptr2; x<end;) *x++ = *y++;
+    for(auto x = ptr, y = ptr2; x<end;) *y++ = *x++;
     ptr2[SIGN] = !ptr2[SIGN];
     return Atom(ptr2);
   }
@@ -146,6 +146,8 @@ inline bool operator==(Term x, Term y) {
   case Term::FUN: {
     Fun fx(x),fy(y);
     if(fx.fun()!=fy.fun()) return 0;
+    DEBUG if(fx.arg_count()!=fy.arg_count())
+      error("fx.arg_count() = %, fy.arg_count() = %",fx.arg_count(),fy.arg_count());
     for(size_t i=fx.arg_count(); i--;)
       if(!(fx.arg(i)==fy.arg(i))) return 0;
     return 1;
@@ -159,20 +161,39 @@ inline bool operator==(Term x, Term y) {
 
 inline bool operator!=(Term x, Term y) { return !(x==y); }
 
-struct AndClause { vec<Atom> atoms; };
+inline bool operator==(Atom x, Atom y) {
+  if(x.pred()!=y.pred()) return 0;
+  DEBUG if(x.arg_count()!=y.arg_count())
+    error("x.arg_count() = %, y.arg_count() = %",x.arg_count(),y.arg_count());
+  if(x.sign()!=y.sign()) return 0;
+  for(size_t i=x.arg_count(); i--;)
+    if(!(x.arg(i)==y.arg(i))) return 0;
+  return 1;
+}
+
+inline bool operator!=(Atom x, Atom y) { return !(x==y); }
+
+struct AndClause {
+  size_t var_count;
+  vec<Atom> atoms;
+};
 struct OrForm { vec<AndClause> and_clauses; };
 
-struct OrClause { vec<Atom> atoms; };
+struct OrClause {
+  size_t var_count;
+  vec<Atom> atoms;
+};
+
 struct NotAndForm { vec<OrClause> or_clauses; };
 
 inline AndClause notOrClause(const OrClause &c) {
-  AndClause d;
+  AndClause d{c.var_count};
   for(auto a : c.atoms) d.atoms.push_back(a.neg());
   return d;
 }
 
 inline OrClause notAndClause(const AndClause &c) {
-  OrClause d;
+  OrClause d{c.var_count};
   for(auto a : c.atoms) d.atoms.push_back(a.neg());
   return d;
 }
@@ -190,7 +211,7 @@ private:
   bool present;
 public:
   Maybe() : present(0) {}
-  Maybe(T v) : present(1) { new(data)T(v); }
+  Maybe(const T &v) : present(1) { new(data)T(v); }
   explicit operator bool(){ return present; } 
   T get() {
     DEBUG if(!present) error("Maybe::get(): not present");

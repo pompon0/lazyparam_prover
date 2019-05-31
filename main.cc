@@ -2,10 +2,14 @@
 
 #include "types.h"
 #include "pred.h"
+#include "pred_format.h"
 #include "mgu.h"
 #include "kbo.h"
 #include "log.h"
 #include "stack.h"
+#include "parse.h"
+#include "util/read_file.h"
+#include <cstdio>
 
 struct Proof {};
 
@@ -149,5 +153,14 @@ ptr<Proof> prove_loop(OrForm form, int limit) {
   return 0;
 }
 
+
+
 StdLogger _;
-int main() {}
+int main() {
+  auto file_raw_bytes = util::read_file(stdin);
+  str file_raw(file_raw_bytes.begin(),file_raw_bytes.end());
+  auto f = parse_notAndForm(file_raw);
+  info("%",show(f));
+  info("ok");
+  return 0;
+}

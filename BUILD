@@ -10,9 +10,11 @@ cc_library(
     "types.h",
     "alloc.h",
     "pred.h",
+    "pred_format.h",
     "log.h",
     "kbo.h",
     "stack.h",
+    "parse.h",
   ],
   deps = ["//util:util"],
 )
@@ -27,11 +29,21 @@ cc_test(
   ],
 )
 
+cc_test(
+  name = "pred_test",
+  srcs = ["pred_test.cc"],
+  deps = [
+    ":prover",
+    "@gtest//:gtest_main",
+  ],
+)
+
 cc_binary(
     name = "main",
     srcs = ["main.cc"],
     deps = [
       ":prover",
       ":tptp_cc_proto",
+      "@com_google_protobuf//:protobuf",
     ],
 )
