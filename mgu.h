@@ -10,6 +10,12 @@ struct Valuation {
   // there is NO cycles in valuation, even x -> x
   vec<Maybe<Term>> val;
 
+  size_t alloc_vars(const OrClause &cla) {
+    size_t offset = val.size();
+    val.resize(val.size()+cla.var_count);
+    return offset;
+  }
+
   inline Var alloc_var() {
     val.emplace_back();
     return Var::make(val.size()-1);

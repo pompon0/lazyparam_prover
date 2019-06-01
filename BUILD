@@ -15,8 +15,13 @@ cc_library(
     "kbo.h",
     "stack.h",
     "parse.h",
+    "tableau.h",
   ],
-  deps = ["//util:util"],
+  deps = [
+    ":tptp_cc_proto",
+    "//util:util",
+    "@com_google_protobuf//:protobuf",
+  ],
 )
 
 cc_test(
@@ -38,12 +43,25 @@ cc_test(
   ],
 )
 
+cc_test(
+  name = "simple_test",
+  srcs = ["simple_test.cc"],
+  data = ["@tptp_test_cnf_proto//:problems"],
+  copts = ["--std=c++17"],
+  linkopts = ["-lstdc++fs"],
+  deps = [
+    ":prover",
+    "//util:util",
+    "@gtest//:gtest_main",
+  ],
+)
+
 cc_binary(
     name = "main",
     srcs = ["main.cc"],
     deps = [
       ":prover",
-      ":tptp_cc_proto",
-      "@com_google_protobuf//:protobuf",
+      "@abseil//absl/flags:flag",
+      "@abseil//absl/flags:parse",
     ],
 )

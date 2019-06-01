@@ -9,6 +9,7 @@ struct Snapshot {
   u8 *begin,*end;
 };
 
+//TODO: zero the memory, when rewinding stack in DEBUG mode.
 Snapshot stack{0,0,0};
 
 inline u8* alloc_bytes(size_t s) {
@@ -31,5 +32,42 @@ template<typename T> inline T* alloc_init(const T &v) {
   return new(alloc_bytes(sizeof(T)))T(v);
 }
 
+template<typename T> struct Maybe {
+private:
+  u8 data[sizeof(T)];
+  bool present;
+public:
+  Maybe() : present(0) {}
+  Maybe(const T &v) : present(1) { new(data)T(v); }
+  explicit operator bool(){ return present; } 
+  T get() {
+    DEBUG if(!present) error("Maybe::get(): not present");
+    return *(T*)data;
+  }
+};
+
+template<typename E> struct List {
+private:
+  struct Node { Node *tail; E head; };
+  Node *ptr;
+  List(Node *_ptr) : ptr(_ptr) {}
+public:
+  List() : List(0) {}
+  List(E h, List<E> t) : List(alloc_init(Node{t.ptr,h})) {}
+  explicit List(E h) : List(h,List()) {}
+  
+  bool empty(){ return !ptr; }
+  E head(){
+    DEBUG if(empty()) error("<0>.head()");
+    return ptr->head;
+  }
+  List<E> tail(){
+    DEBUG if(empty()) error("<0>.tail()");
+    return List(ptr->tail);
+  }
+  
+  friend List<E> operator+(E h, List<E> t){ return List(h,t); }
+  List<E>& operator+=(E h){ return *this = List(h,*this); }
+};
 
 #endif // ALLOC_H_

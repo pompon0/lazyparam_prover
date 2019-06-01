@@ -85,7 +85,10 @@ struct ParseCtx {
           break;
         }
         case tptp::Formula::Operator::FALSE: break;
-        default: error("unexpectedf f.op().type() = %",f.op().type());
+        default: {
+          clause.atoms.push_back(parse_atom(f));
+          break;
+        }
       }
       break;
     }

@@ -131,6 +131,14 @@ public:
     ptr2[SIGN] = !ptr2[SIGN];
     return Atom(ptr2);
   }
+
+  Atom with_offset(size_t offset) {
+    u64 *end = ptr+ARGS+arg_count();
+    u64 *ptr2 = alloc(end-ptr);
+    for(auto x = ptr, y = ptr2; x<end;) *y++ = *x++;
+    ptr2[VAR_OFFSET] = offset;
+    return Atom(ptr2);
+  }
 };
 
 static_assert(sizeof(u64*)==sizeof(u64));
@@ -173,50 +181,53 @@ inline bool operator==(Atom x, Atom y) {
 
 inline bool operator!=(Atom x, Atom y) { return !(x==y); }
 
+struct OrClause;
+struct AndClause;
+struct NotAndForm;
+struct OrForm;
+
 struct AndClause {
   size_t var_count;
   vec<Atom> atoms;
+  OrClause neg() const;
 };
-struct OrForm { vec<AndClause> and_clauses; };
 
 struct OrClause {
   size_t var_count;
   vec<Atom> atoms;
+  AndClause neg() const;
 };
 
-struct NotAndForm { vec<OrClause> or_clauses; };
-
-inline AndClause notOrClause(const OrClause &c) {
-  AndClause d{c.var_count};
-  for(auto a : c.atoms) d.atoms.push_back(a.neg());
+inline OrClause AndClause::neg() const {
+  OrClause d{var_count};
+  for(auto a : atoms) d.atoms.push_back(a.neg());
   return d;
 }
 
-inline OrClause notAndClause(const AndClause &c) {
-  OrClause d{c.var_count};
-  for(auto a : c.atoms) d.atoms.push_back(a.neg());
+inline AndClause OrClause::neg() const {
+  AndClause d{var_count};
+  for(auto a : atoms) d.atoms.push_back(a.neg());
   return d;
 }
 
-inline NotAndForm to_NotAndForm(const OrForm &f) {
-  NotAndForm g;
-  for(const auto &c : f.and_clauses)
-      g.or_clauses.push_back(notAndClause(c));
-  return g;
+struct OrForm {
+  vec<AndClause> and_clauses;
+  OrForm(){}
+  explicit OrForm(const NotAndForm &);
+};
+
+struct NotAndForm {
+  vec<OrClause> or_clauses;
+  NotAndForm(){}
+  explicit NotAndForm(const OrForm &);
+};
+
+inline NotAndForm::NotAndForm(const OrForm &f) {
+  for(const auto &c : f.and_clauses) or_clauses.push_back(c.neg());
 }
 
-template<typename T> struct Maybe {
-private:
-  u8 data[sizeof(T)];
-  bool present;
-public:
-  Maybe() : present(0) {}
-  Maybe(const T &v) : present(1) { new(data)T(v); }
-  explicit operator bool(){ return present; } 
-  T get() {
-    DEBUG if(!present) error("Maybe::get(): not present");
-    return *(T*)data;
-  }
-};
+inline OrForm::OrForm(const NotAndForm &f) {
+  for(const auto &c : f.or_clauses) and_clauses.push_back(c.neg());
+}
 
 #endif // PRED_H_

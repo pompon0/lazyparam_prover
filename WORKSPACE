@@ -17,3 +17,16 @@ http_archive(
   strip_prefix = "googletest-release-1.8.1",
   urls = ["https://github.com/google/googletest/archive/release-1.8.1.zip"],
 )
+
+http_archive(
+  name = "abseil",
+  strip_prefix = "abseil-cpp-master",
+  urls = ["https://github.com/abseil/abseil-cpp/archive/master.zip"],
+)
+
+http_archive(
+  name = "tptp_test_cnf_proto",
+  urls = ["https://storage.googleapis.com/tptp/tptp_test_cnf_proto.tgz"],
+  build_file = "tptp_test_cnf_proto.BUILD",
+)
+

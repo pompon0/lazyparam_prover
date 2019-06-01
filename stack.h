@@ -3,29 +3,7 @@
 
 #include "alloc.h"
 #include "pred.h"
-
-template<typename E> struct List {
-private:
-  struct Node { Node *tail; E head; };
-  Node *ptr;
-  List(Node *_ptr) : ptr(_ptr) {}
-public:
-  bool empty(){ return !ptr; }
-  E head(){
-    DEBUG if(empty()) error("<0>.head()");
-    return ptr->head;
-  }
-  List<E> tail(){
-    DEBUG if(empty()) error("<0>.tail()");
-    return List(ptr->tail);
-  }
-  static List<E> make() { return List(0); }
-  static List<E> make(E h, List<E> t) {
-    return List(alloc_init(Node{t.ptr,h}));
-  }
-  friend List<E> operator+(E h, List<E> t){ return make(h,t); }
-  List<E>& operator+=(E h){ return *this = make(h,*this); }
-};
+#include "util/string.h"
 
 using Branch = List<Atom>;
 
@@ -33,6 +11,18 @@ struct Bud {
   bool strong;
   Branch branch;
 };
+
+inline str show(Branch b) {
+  vec<str> atoms;
+  for(; !b.empty(); b = b.tail()) atoms.push_back(show(b.head()));
+  return util::fmt("[%]",util::join(", ",atoms));
+}
+
+inline str show(List<Bud> buds) {
+  vec<str> branches;
+  for(; !buds.empty(); buds = buds.tail()) branches.push_back(show(buds.head().branch)+"\n");
+  return util::join("",branches);
+}
 
 // any clause with literal
 // any subterm
