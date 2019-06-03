@@ -16,6 +16,7 @@ cc_library(
     "stack.h",
     "parse.h",
     "tableau.h",
+    "eq_axioms.h",
   ],
   deps = [
     ":tptp_cc_proto",

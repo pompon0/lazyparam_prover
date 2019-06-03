@@ -187,13 +187,13 @@ struct NotAndForm;
 struct OrForm;
 
 struct AndClause {
-  size_t var_count;
+  size_t var_count = 0;
   vec<Atom> atoms;
   OrClause neg() const;
 };
 
 struct OrClause {
-  size_t var_count;
+  size_t var_count = 0;
   vec<Atom> atoms;
   AndClause neg() const;
 };

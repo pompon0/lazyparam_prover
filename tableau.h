@@ -9,6 +9,7 @@
 #include "log.h"
 #include "stack.h"
 #include "parse.h"
+#include "eq_axioms.h"
 
 struct Proof {};
 
@@ -158,6 +159,7 @@ struct SearchState {
 
 ptr<Proof> prove_loop(OrForm form, int limit) {
   DEBUG info("prove_loop(), begin");
+  form = append_eq_axioms(form);
   SearchState s(form,limit);
   s.start();
   while(s.tabs.size()) {
