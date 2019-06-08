@@ -71,27 +71,33 @@ struct Valuation {
     return 0;
   }
 
+  // clears offset
   inline Term eval(Term t) { FRAME("eval(%)",show(t));
     switch(t.type()) {
-    case Term::VAR: if(auto mv = val[Var(t).id()]) return eval(mv.get()); else return t;
-    case Term::FUN: {
-      Fun tf(t);
-      size_t ac = tf.arg_count();
-      Fun::Builder b(tf.fun(),ac);
-      for(size_t i=0; i<ac; ++i) b.set_arg(i,eval(tf.arg(i)));
-      return Term(b.build());
-    }
-    default: DEBUG error("unhandled t.type() = %",t.type());
+      case Term::VAR: {
+        u64 id = Var(t).id();
+        if(auto mv = val[id]) return eval(mv.get()); else return Term(Var::make(id));
+      }
+      case Term::FUN: {
+        Fun tf(t);
+        size_t ac = tf.arg_count();
+        Fun::Builder b(tf.fun(),ac);
+        for(size_t i=0; i<ac; ++i) b.set_arg(i,eval(tf.arg(i)));
+        return Term(b.build());
+      }
+      default: DEBUG error("unhandled t.type() = %",t.type());
     }
   }
 
+  // clears offset
   inline Atom eval(Atom a) { FRAME("eval(%)",show(a));
     size_t ac = a.arg_count();
-    Atom::Builder b(a.sign(),a.pred(),ac,a.var_offset());
+    Atom::Builder b(a.sign(),a.pred(),ac,0);
     for(size_t i=ac; i--;) b.set_arg(i,eval(a.arg(i)));
     return b.build();
   }
 
+  // clears offset
   inline OrClause eval(OrClause cla) { FRAME("eval(%)",show(cla));
     for(auto &a : cla.atoms) a = eval(a);
     return cla;

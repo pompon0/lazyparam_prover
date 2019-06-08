@@ -8,7 +8,7 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 
-ABSL_FLAG(uint64_t,proof_size_limit,0,"maximal size of a proof to search for (0 for unbounded search)");
+ABSL_FLAG(uint64_t,proof_size_limit,200,"maximal size of a proof to search for");
 
 StdLogger _;
 int main(int argc, char **argv) {
@@ -18,12 +18,8 @@ int main(int argc, char **argv) {
   str file_raw(file_raw_bytes.begin(),file_raw_bytes.end());
   OrForm f(parse_notAndForm(file_raw));
 
-  for(size_t l = 1; l!=absl::GetFlag(FLAGS_proof_size_limit); ++l) {
-    if(prove_loop(f,l)) {
-      info("proven");
-      return 0;
-    }
-  }
-  info("failed");
+  info("%",show(f));
+  auto proof = prove_loop(f,absl::GetFlag(FLAGS_proof_size_limit));
+  if(!proof) info("failed");
   return 0;
 }

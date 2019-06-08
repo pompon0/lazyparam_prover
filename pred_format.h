@@ -12,6 +12,7 @@ str show(Term t) {
     case Term::VAR: return util::fmt("v%",Var(t).id());
     case Term::FUN: {
       Fun fun(t);
+      if(fun.fun()==u64(Fun::EXTRA_CONST)) return "c";
       vec<str> args(fun.arg_count());
       for(size_t i=0; i<fun.arg_count(); ++i) args[i] = show(fun.arg(i));
       return util::fmt("f%(%)",Fun(t).fun(),util::join(",",args));

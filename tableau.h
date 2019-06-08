@@ -112,10 +112,6 @@ struct SearchState {
   }
 
   ptr<Proof> step(){ FRAME("step");
-    //DEBUG info("=====================================");
-    //DEBUG info("step");
-    //DEBUG info("s.tabs.size() = %",tabs.size());
-    //DEBUG for(const auto &tab : tabs) info("%",show(tab.buds));
     // pop first tab
     auto tab = tabs.back(); tabs.pop_back();
     // if all branches are closed, then we found a proof
@@ -141,7 +137,7 @@ ptr<Proof> prove(OrForm form, size_t limit) {
   SearchState s(form,limit);
   s.start();
   for(size_t steps = 0; s.tabs.size(); steps++) {
-    DEBUG if(steps%100==0) info("steps = %",steps);
+    DEBUG if(steps%1000==0) info("steps = %",steps);
     if(auto proof = s.step()) return proof;
   }
   return 0;

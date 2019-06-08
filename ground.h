@@ -5,6 +5,7 @@
 
 namespace {
 
+// clears offset (it doesnt' matter, because result contains no vars)
 inline Term ground(Term t) {
   switch(t.type()) {
     case Term::VAR: return Term(Fun::Builder(Fun::EXTRA_CONST,0).build());
@@ -19,13 +20,15 @@ inline Term ground(Term t) {
   }
 }
 
+// clears offset
 inline Atom ground(Atom a) {
   size_t ac = a.arg_count();
-  Atom::Builder b(a.sign(),a.pred(),ac,a.var_offset());
+  Atom::Builder b(a.sign(),a.pred(),ac,0);
   for(size_t i=ac; i--;) b.set_arg(i,ground(a.arg(i)));
   return b.build();
 }
 
+// clears offset
 inline OrClause ground(OrClause cla) {
   for(auto &a : cla.atoms) a = ground(a);
   return cla;
