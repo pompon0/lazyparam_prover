@@ -5,20 +5,17 @@
 #include "pred.h"
 #include "alloc.h"
 #include "log.h"
+#include "pred_format.h"
 
 struct Valuation {
   // there is NO cycles in valuation, even x -> x
   vec<Maybe<Term>> val;
 
-  size_t alloc_vars(const OrClause &cla) {
+  OrClause alloc_vars(OrClause cla) {
     size_t offset = val.size();
     val.resize(val.size()+cla.var_count);
-    return offset;
-  }
-
-  inline Var alloc_var() {
-    val.emplace_back();
-    return Var::make(val.size()-1);
+    for(auto &a : cla.atoms) a = a.with_offset(offset);
+    return cla;
   }
 
   inline bool assign(u64 v, Term t) { FRAME("MGU.assign()");
@@ -39,8 +36,18 @@ struct Valuation {
       return 1;
     }
     }
-    error("MGU::assignt(v,<type=%>)",t.type());
+    error("MGU::assign(v,<type=%>)",t.type());
     return 0;
+  }
+
+  // unifies opposite atoms
+  inline bool opposite(Atom x, Atom y) {
+    if(x.sign()==y.sign()) return 0;
+    if(x.pred()!=y.pred()) return 0;
+    DEBUG if(x.arg_count()!=y.arg_count()) error("arg_count() mismatch: %, %",show(x),show(y));
+    for(size_t i=x.arg_count(); i--;)
+      if(!mgu(x.arg(i),y.arg(i))) return 0;
+    return 1;
   }
 
   inline bool mgu(Term x, Term y) { FRAME("mgu()");
@@ -64,7 +71,7 @@ struct Valuation {
     return 0;
   }
 
-  inline Term eval(Term t) { FRAME("eval");
+  inline Term eval(Term t) { FRAME("eval(%)",show(t));
     switch(t.type()) {
     case Term::VAR: if(auto mv = val[Var(t).id()]) return eval(mv.get()); else return t;
     case Term::FUN: {
@@ -76,6 +83,18 @@ struct Valuation {
     }
     default: DEBUG error("unhandled t.type() = %",t.type());
     }
+  }
+
+  inline Atom eval(Atom a) { FRAME("eval(%)",show(a));
+    size_t ac = a.arg_count();
+    Atom::Builder b(a.sign(),a.pred(),ac,a.var_offset());
+    for(size_t i=ac; i--;) b.set_arg(i,eval(a.arg(i)));
+    return b.build();
+  }
+
+  inline OrClause eval(OrClause cla) { FRAME("eval(%)",show(cla));
+    for(auto &a : cla.atoms) a = eval(a);
+    return cla;
   }
 };
 

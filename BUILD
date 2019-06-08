@@ -7,6 +7,7 @@ cc_library(
   name = "prover",
   hdrs = [
     "mgu.h",
+    "ground.h",
     "types.h",
     "alloc.h",
     "pred.h",

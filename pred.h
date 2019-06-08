@@ -42,6 +42,7 @@ private:
   enum { FUN = Term::SIZE, ARG_COUNT, ARGS };
   Term term;
 public:
+  enum { EXTRA_CONST = -1 };
   Fun(Term t) : term(t) {
     DEBUG if(term.ptr[Term::TYPE]!=FUN) error("Fun(<type=%>)",term.ptr[Term::TYPE]);
   }
@@ -95,6 +96,7 @@ public:
   inline u64 pred(){ return ptr[PRED]; }
   inline u64 arg_count(){ return ptr[ARG_COUNT]; }
   inline Term arg(size_t i){ return Term((u64*)ptr[ARGS+i],ptr[VAR_OFFSET]); }
+  inline u64 var_offset(){ return ptr[VAR_OFFSET]; }
 
   static inline Atom eq(bool sign, Term l, Term r) {
     Builder b(sign,EQ,2,0);
@@ -187,25 +189,27 @@ struct NotAndForm;
 struct OrForm;
 
 struct AndClause {
-  size_t var_count = 0;
+  AndClause(size_t _var_count = 0) : var_count(_var_count) {}
+  size_t var_count;
   vec<Atom> atoms;
   OrClause neg() const;
 };
 
 struct OrClause {
-  size_t var_count = 0;
+  OrClause(size_t _var_count = 0) : var_count(_var_count) {}
+  size_t var_count;
   vec<Atom> atoms;
   AndClause neg() const;
 };
 
 inline OrClause AndClause::neg() const {
-  OrClause d{var_count};
+  OrClause d(var_count);
   for(auto a : atoms) d.atoms.push_back(a.neg());
   return d;
 }
 
 inline AndClause OrClause::neg() const {
-  AndClause d{var_count};
+  AndClause d(var_count);
   for(auto a : atoms) d.atoms.push_back(a.neg());
   return d;
 }
@@ -229,5 +233,7 @@ inline NotAndForm::NotAndForm(const OrForm &f) {
 inline OrForm::OrForm(const NotAndForm &f) {
   for(const auto &c : f.or_clauses) and_clauses.push_back(c.neg());
 }
+
+using Proof = OrForm;
 
 #endif // PRED_H_

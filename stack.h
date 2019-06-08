@@ -8,7 +8,6 @@
 using Branch = List<Atom>;
 
 struct Bud {
-  bool strong;
   Branch branch;
 };
 
