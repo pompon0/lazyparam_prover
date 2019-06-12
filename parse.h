@@ -12,6 +12,13 @@ template<typename T> struct IntDict {
   }
   void clear(){ m.clear(); }
   size_t size(){ return m.size(); }
+
+  std::map<size_t,T> rev() const {
+    std::map<size_t,T> rm;
+    for(const auto &p : m) rm[p.second] = p.first;
+    return rm;
+  }
+
 private:
   std::map<T,size_t> m;
 };
@@ -102,35 +109,93 @@ struct ParseCtx {
     clause.var_count = var_names.size();
     return clause;
   }
+
+  NotAndForm parse_notAndForm(const tptp::File &file) {
+    NotAndForm form;
+    for(const tptp::Input &input : file.input()) {
+      if(input.language()!=tptp::Input::CNF)
+        error("input.language() = %, want CNF",input.language());
+      switch(input.role()) {
+      case tptp::Input::AXIOM:
+      case tptp::Input::PLAIN:
+      case tptp::Input::NEGATED_CONJECTURE: {
+        form.or_clauses.push_back(parse_orClause(input.formula()));
+        break;
+      }
+      default:
+        error("unexpected input.role() = %",input.role());
+      }
+    }
+    return form;
+  }
+
+  NotAndForm parse_notAndForm(const str &file_raw) {
+    tptp::File file;
+    if(!google::protobuf::TextFormat::ParseFromString(file_raw,&file)) {
+      error("failed to parse input");
+    }
+    return parse_notAndForm(file);
+  }
 };
 
-NotAndForm parse_notAndForm(const tptp::File &file) {
-  ParseCtx ctx;
-  NotAndForm form;
-  for(const tptp::Input &input : file.input()) {
-    if(input.language()!=tptp::Input::CNF)
-      error("input.language() = %, want CNF",input.language());
-    switch(input.role()) {
-    case tptp::Input::AXIOM:
-    case tptp::Input::PLAIN:
-    case tptp::Input::NEGATED_CONJECTURE: {
-      form.or_clauses.push_back(ctx.parse_orClause(input.formula()));
-      break;
-    }
-    default:
-      error("unexpected input.role() = %",input.role());
-    }
-  }
-  return form;
-}
+struct ProtoCtx {
+  ProtoCtx(const ParseCtx &pc) : pred_names(pc.pred_names.rev()), fun_names(pc.fun_names.rev()) {}
+  std::map<size_t,str> pred_names;
+  std::map<size_t,str> fun_names;
 
-NotAndForm parse_notAndForm(const str &file_raw) {
-  tptp::File file;
-  if(!google::protobuf::TextFormat::ParseFromString(file_raw,&file)) {
-    error("failed to parse input");
+  tptp::Term proto_term(Term t) const {
+    tptp::Term pt;
+    switch(t.type()) {
+      case Term::VAR: {
+        pt.set_type(tptp::Term::VAR);
+        pt.set_name(show(t));
+        break;
+      }
+      case Term::FUN: {
+        Fun f(t);
+        pt.set_type(tptp::Term::EXP);
+        pt.set_name(fun_names.at(f.fun()));
+        for(size_t i=0; i<f.arg_count(); ++i)
+          *(pt.add_args()) = proto_term(f.arg(i));
+        break;
+      }
+    }
+    return pt;
   }
-  return parse_notAndForm(file);
-}
+
+  tptp::Formula proto_atom(Atom a) const {
+    tptp::Formula f;
+    //TODO: error if a.pred() not in pred_names
+    f.mutable_pred()->set_name(pred_names.at(a.pred()));
+    for(size_t i=0; i<a.arg_count(); ++i)
+      *(f.mutable_pred()->add_args()) = proto_term(a.arg(i));
+    if(!a.sign()) {
+      tptp::Formula nf;
+      nf.mutable_op()->set_type(tptp::Formula::Operator::NEG);
+      *(nf.mutable_op()->add_args()) = f;
+      return nf;
+    }
+    return f;
+  }
+
+  tptp::Formula proto_orClause(const OrClause &cla) const {
+    tptp::Formula f;
+    f.mutable_op()->set_type(tptp::Formula::Operator::OR);
+    for(auto a : cla.atoms) *(f.mutable_op()->add_args()) = proto_atom(a);
+    return f;
+  }
+
+  tptp::File proto_notAndForm(const NotAndForm &f) const {
+    tptp::File file;
+    for(const auto &cla : f.or_clauses) {
+      auto input = file.add_input();
+      input->set_role(tptp::Input::PLAIN);
+      input->set_language(tptp::Input::CNF);
+      *(input->mutable_formula()) = proto_orClause(cla);
+    }
+    return file;
+  }
+};
 
 #endif  // PARSE_H_
 

@@ -20,7 +20,8 @@ TEST(simple,all) {
     info("%",entry.path());
     auto file_raw_bytes = util::read_file(entry.path());
     str file_raw(file_raw_bytes.begin(),file_raw_bytes.end());
-    OrForm f(parse_notAndForm(file_raw));
+    ParseCtx ctx;
+    OrForm f(ctx.parse_notAndForm(file_raw));
     auto proof = prove_loop(f,20);
     ASSERT_TRUE(proof);
   }

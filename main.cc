@@ -1,6 +1,7 @@
 #define DEBUG if(1)
 
 #include <cstdio>
+#include <iostream>
 #include "util/read_file.h"
 #include "tableau.h"
 #include "pred.h"
@@ -16,10 +17,12 @@ int main(int argc, char **argv) {
 
   auto file_raw_bytes = util::read_file(stdin);
   str file_raw(file_raw_bytes.begin(),file_raw_bytes.end());
-  OrForm f(parse_notAndForm(file_raw));
+  ParseCtx ctx;
+  OrForm f(ctx.parse_notAndForm(file_raw));
 
-  info("%",show(f));
   auto proof = prove_loop(f,absl::GetFlag(FLAGS_proof_size_limit));
-  if(!proof) info("failed");
+  if(!proof) return 1;
+  ProtoCtx pctx(ctx);
+  std::cout << pctx.proto_notAndForm(NotAndForm(*proof)).DebugString() << std::endl;
   return 0;
 }
