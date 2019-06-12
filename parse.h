@@ -139,7 +139,9 @@ struct ParseCtx {
 };
 
 struct ProtoCtx {
-  ProtoCtx(const ParseCtx &pc) : pred_names(pc.pred_names.rev()), fun_names(pc.fun_names.rev()) {}
+  ProtoCtx(const ParseCtx &pc) : pred_names(pc.pred_names.rev()), fun_names(pc.fun_names.rev()) {
+    fun_names[Fun::EXTRA_CONST] = "c";
+  }
   std::map<size_t,str> pred_names;
   std::map<size_t,str> fun_names;
 
@@ -166,7 +168,12 @@ struct ProtoCtx {
   tptp::Formula proto_atom(Atom a) const {
     tptp::Formula f;
     //TODO: error if a.pred() not in pred_names
-    f.mutable_pred()->set_name(pred_names.at(a.pred()));
+    if(a.pred()==Atom::EQ) {
+      f.mutable_pred()->set_type(tptp::Formula::Pred::EQ);
+    } else {
+      f.mutable_pred()->set_type(tptp::Formula::Pred::CUSTOM);
+      f.mutable_pred()->set_name(pred_names.at(a.pred()));
+    }
     for(size_t i=0; i<a.arg_count(); ++i)
       *(f.mutable_pred()->add_args()) = proto_term(a.arg(i));
     if(!a.sign()) {
