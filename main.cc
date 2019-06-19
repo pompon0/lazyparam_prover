@@ -1,8 +1,6 @@
 #define DEBUG if(1)
 
-#include <cstdio>
 #include <iostream>
-#include "util/read_file.h"
 #include "tableau.h"
 #include "pred.h"
 
@@ -15,8 +13,7 @@ StdLogger _;
 int main(int argc, char **argv) {
   absl::ParseCommandLine(argc, argv);
 
-  auto file_raw_bytes = util::read_file(stdin);
-  str file_raw(file_raw_bytes.begin(),file_raw_bytes.end());
+  str file_raw((std::istreambuf_iterator<char>(std::cin)), (std::istreambuf_iterator<char>()));
   ParseCtx ctx;
   OrForm f(ctx.parse_notAndForm(file_raw));
 
