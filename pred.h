@@ -200,6 +200,9 @@ struct OrClause {
   size_t var_count;
   vec<Atom> atoms;
   AndClause neg() const;
+
+  bool operator==(const OrClause &cla) const { return atoms==cla.atoms; }
+  bool operator!=(const OrClause &cla) const { return !(*this==cla); }
 };
 
 inline OrClause AndClause::neg() const {

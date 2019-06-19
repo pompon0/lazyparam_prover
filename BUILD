@@ -58,6 +58,16 @@ cc_test(
   ],
 )
 
+cc_test(
+  name = "eq_axioms_test",
+  srcs = ["eq_axioms_test.cc"],
+  deps = [
+    ":prover",
+    "//util:util",
+    "@gtest//:gtest_main",
+  ],
+)
+
 cc_binary(
     name = "main",
     srcs = ["main.cc"],

@@ -5,6 +5,7 @@
 #include "util/log.h"
 #include "pred.h"
 #include "types.h"
+#include "pred_format.h"
 
 namespace {
 
@@ -36,7 +37,7 @@ OrClause trans_axiom() {
 OrClause cong_pred_axiom(u64 pred_name, u64 arg_count) {
   OrClause c;
   Atom::Builder lb(false,pred_name,arg_count,0);
-  Atom::Builder rb(false,pred_name,arg_count,0);
+  Atom::Builder rb(true,pred_name,arg_count,0);
   for(size_t i=0; i<arg_count; ++i) {
     Term la(Var::make(c.var_count++));
     Term ra(Var::make(c.var_count++));
@@ -106,6 +107,7 @@ OrForm append_eq_axioms(OrForm _f) {
   f.or_clauses.push_back(trans_axiom());
   for(auto pa : ctx.pred_arity) if(pa.first!=Atom::EQ && pa.second) f.or_clauses.push_back(cong_pred_axiom(pa.first,pa.second));
   for(auto fa : ctx.fun_arity) if(fa.second) f.or_clauses.push_back(cong_fun_axiom(fa.first,fa.second));
+  info("f + axioms = \n%",show(OrForm(f)));
   return OrForm(f);
 }
 

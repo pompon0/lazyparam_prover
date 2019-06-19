@@ -64,22 +64,23 @@ namespace util
     return B;
   }
 
-  struct StdLogger : Logger
+  struct StreamLogger : Logger
   {
-    StdLogger(){ Logger::insert(this); }
-    ~StdLogger(){ Logger::erase(this); }
+    std::ostream &os;
+    StreamLogger(std::ostream &_os) : os(_os) { Logger::insert(this); }
+    ~StreamLogger(){ Logger::erase(this); }
     arr<str> stack;
 
     void log(int level, str msg)
     {
       switch(level)
       {
-        case INFO: std::cout << now() << msg << std::endl; break;
+        case INFO: os << now() << msg << std::endl; break;
         case PUSH_FRAME: stack.push_back(msg); break;
         case POP_FRAME: stack.pop_back(); break;
         case ERROR:
           msg = fmt("\n%\nERROR: %\n",join("\n",stack),msg);
-          std::cerr << msg << std::flush;
+          os << msg << std::flush;
           break;
       }
     }

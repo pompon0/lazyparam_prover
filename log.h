@@ -11,6 +11,6 @@
 
 using util::error;
 using util::info;
-using util::StdLogger;
+using util::StreamLogger;
 
 #endif // LOG_H_

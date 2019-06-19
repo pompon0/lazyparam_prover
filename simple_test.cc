@@ -14,7 +14,7 @@ const str tptp_test_cnf_proto_path = "external/tptp_test_cnf_proto/";
 using namespace util;
 
 TEST(simple,all) {
-  StdLogger _;
+  StreamLogger _(std::cerr);
   for(const auto &entry : std::filesystem::directory_iterator(tptp_test_cnf_proto_path)) {
     info("========================");
     info("%",entry.path());

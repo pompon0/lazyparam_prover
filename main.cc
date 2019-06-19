@@ -9,7 +9,7 @@
 
 ABSL_FLAG(uint64_t,proof_size_limit,200,"maximal size of a proof to search for");
 
-StdLogger _;
+StreamLogger _(std::cerr);
 int main(int argc, char **argv) {
   absl::ParseCommandLine(argc, argv);
 
