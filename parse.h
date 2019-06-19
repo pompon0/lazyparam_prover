@@ -1,7 +1,7 @@
 #ifndef PARSE_H_
 #define PARSE_H_
 
-#include "external/tptp_parser/proto/tptp.pb.h"
+#include "proto/tptp.pb.h"
 #include "google/protobuf/text_format.h"
 #include "pred.h"
 
