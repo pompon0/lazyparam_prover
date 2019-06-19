@@ -24,6 +24,8 @@ TEST(simple,all) {
     OrForm f(ctx.parse_notAndForm(file_raw));
     auto proof = prove_loop(f,20);
     ASSERT_TRUE(proof);
+    ProtoCtx pctx(ctx);
+    pctx.proto_notAndForm(NotAndForm(*proof));
   }
 }
 

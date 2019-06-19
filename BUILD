@@ -66,4 +66,5 @@ cc_binary(
       "@abseil//absl/flags:flag",
       "@abseil//absl/flags:parse",
     ],
+    visibility = ["//visibility:public"],
 )
